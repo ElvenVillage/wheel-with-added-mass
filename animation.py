@@ -3,11 +3,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import animation
 
-m_0 = 100  #Масса однородного колеса
-m_ext = 30 #Масса точечной нагрузки
-R = 20     #Радиус колеса
-m = m_0 + m_ext
-R_c = m_ext*R/(m_0+m_ext)   
+from solv import R_c, R
+
+#m_0 = 100  #Масса однородного колеса
+#m_ext = 30 #Масса точечной нагрузки
+#R = 20     #Радиус колеса
+#m = m_0 + m_ext
+#R_c = m_ext*R/(m_0+m_ext)   
 
 data = pd.read_csv('data.csv')
 
@@ -21,6 +23,10 @@ fig.set_size_inches(5,5)
 ax = plt.axes(xlim=(-50, 400), ylim=(-100, 100))
 point = plt.Circle((R_c, R), radius=0.5, fc='y', color='red')
 patch = plt.Circle((0, R), radius=R, fc='y',)
+
+interval = len(phi)
+#if interval > 1000:
+#    interval = 1000
 
 def init():
     patch.center = (0, R)
@@ -47,10 +53,11 @@ def animate(i):
 
 anim = animation.FuncAnimation(fig, animate, 
                                init_func=init, 
-                               frames=len(phi), 
+                               frames=interval, 
                                repeat=False,
-                               interval=dt*100*6,
+                               interval=dt,
                                blit=True)
-
-plt.plot([x for x in range(-50, 400)], [0 for x in range(-50, 400)])
+plt.plot([x for x in range(-50, 400)], [0 for x in range(-50, 400)])                              
 plt.show()
+
+#anim.save("animation.gif", fps=15)

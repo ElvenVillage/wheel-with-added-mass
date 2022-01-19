@@ -1,3 +1,8 @@
+#1 случай
+# phi_0 = 0 dot_phi_0 = -2 Качение и взлет
+# 2 случай
+# phi_0 = 0 dot_phi_0 = -1.5 Хорошее качение 
+
 import numpy as np
 from scipy import integrate
 
@@ -17,8 +22,8 @@ R_c = m_ext*R/(m_0+m_ext)                  #Смещение цетра тяже
 dt = 0.01 #Шаг интегрирования
 
 #Начальные условия
-phi_0 = np.pi
-dot_phi_0 = -3
+phi_0 = 0
+dot_phi_0 = -2
 
 def N_force(phi, dot_phi, ddot_phi):
     #return m*(dot_phi*R_c*np.cos(phi) - phi**2*R_c*np.sin(phi) + g)
@@ -73,19 +78,25 @@ def handleFlying(t_start, phi_0, dot_phi_0, x_0):
         v_c_y -= g*dt
         x = x_c - R_c*np.cos(phi); y = y_c - R_c*np.sin(phi)
 
-        solution.append([x, y, phi, dot_phi_0, N_force(phi, dot_phi_0, ddot_phi_n(phi, dot_phi_0))])
+        
+        solution.append([x, y, phi, dot_phi_0, 0, 0, v_b])
 
 def handleRolling(t_start, phi_0, dot_phi_0, x_0):
     t_0 = t_start
+    iterations = 0
+    phi_value = phi_0; dot_phi_value = dot_phi_0; x_value = x_0;
     while True:
+        iterations += 1
+        if iterations > 10:
+            return 0
         t = np.arange(t_0, t_0 + 30, dt)
-        sol = integrate.odeint(rollingSolver, [phi_0, dot_phi_0], t)
+        sol = integrate.odeint(rollingSolver, [phi_value, dot_phi_value], t)
 
         phi = sol[:, 0]
         dot_phi = sol[:, 1]
         
         v_b = dot_phi * R * (-1)
-        x = x_0
+        x = x_value
 
         for i in range(len(phi)):
             N_value = checkLiftoff(phi[i], dot_phi[i])
@@ -93,19 +104,27 @@ def handleRolling(t_start, phi_0, dot_phi_0, x_0):
                 print("Отрыв на ", t[i])
                 return t[i]
             x += v_b[i] * dt
-            solution.append([x, R, phi[i], dot_phi[i], N_value])
+
+            ddot_phi_value = ddot_phi_n(phi[i], dot_phi[i])
+            F_value = F_force(phi[i], dot_phi[i], ddot_phi_value)
+
+            solution.append([x, R, phi[i], dot_phi[i], N_value, F_value, v_b[i]])
+        x_value = x; phi_value = phi[len(phi)-1]; dot_phi_value = dot_phi[len(dot_phi)-1]
         t_0 += 30
 
 def get_last_entry(t_start):
     return solution[int(t_start/dt)-1]
 
 
-t_start = 0; x_start = 0; phi_0_start = phi_0; dot_phi_0_start = dot_phi_0
-for i in range(10):
-    t_start = handleRolling(t_start, phi_0_start, dot_phi_0_start, x_start)
-    last_entry = get_last_entry(t_start)
-    t_start = handleFlying(t_start, last_entry[2], last_entry[3], last_entry[0])
-    last_entry = get_last_entry(t_start)
-    x_start = last_entry[0]; phi_0_start = last_entry[2]; dot_phi_0_start = last_entry[3]
-#handleRolling(t_start, phi_0_start, dot_phi_0, x_start)
-np.savetxt('data.csv', solution, delimiter=',', fmt='%.5f')
+if __name__ == '__main__':
+    t_start = 0; x_start = 0; phi_0_start = phi_0; dot_phi_0_start = dot_phi_0
+    for i in range(2):
+        t_start = handleRolling(t_start, phi_0_start, dot_phi_0_start, x_start)
+        if t_start == 0:
+            break
+        last_entry = get_last_entry(t_start)
+        t_start = handleFlying(t_start, last_entry[2], last_entry[3], last_entry[0])
+        last_entry = get_last_entry(t_start)
+        x_start = last_entry[0]; phi_0_start = last_entry[2]; dot_phi_0_start = last_entry[3]
+    #handleRolling(t_start, phi_0_start, dot_phi_0, x_start)
+    np.savetxt('data.csv', solution, delimiter=',', fmt='%.5f')
